@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Мастерская 3D печати</title>
+    <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Моя мастерская</h1>
+        <p>Добавить новую модель</p>
+
+        <form id="uploadForm">
+            <div class="form-group">
+                <label>Название модели *</label>
+                <input type="text" id="name" required placeholder="Например: Дракон" />
+            </div>
+
+            <div class="form-group">
+                <label>Цена *</label>
+                <input type="text" id="price" required placeholder="2500 ₽" />
+            </div>
+
+            <div class="form-group">
+                <label>Описание</label>
+                <textarea id="description" rows="4" placeholder="Подробное описание модели..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Ссылка на главное фото</label>
+                <input type="text" id="photo" placeholder="https://i.imgur.com/ваша_картинка.jpg" />
+                <small style="color: #666;">Загрузи картинку на Imgur.com и вставь ссылку</small>
+            </div>
+
+            <div class="form-group">
+                <label>Ссылка на видео (опционально)</label>
+                <input type="text" id="video" placeholder="https://i.imgur.com/ваше_видео.mp4" />
+                <small style="color: #666;">Загрузи видео на Imgur.com и вставь ссылку</small>
+            </div>
+
+            <div class="form-group">
+                <label>Ссылки на дополнительные фото (через запятую)</label>
+                <input type="text" id="gallery" placeholder="https://i.imgur.com/1.jpg, https://i.imgur.com/2.jpg" />
+                <small style="color: #666;">Загрузи фото на Imgur.com и вставь ссылки через запятую</small>
+            </div>
+
+            <button type="submit">➕ Добавить модель</button>
+        </form>
+
+        <div id="status"></div>
+
+        <hr />
+
+        <h2>📦 Все модели</h2>
+        <div id="modelsList"></div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

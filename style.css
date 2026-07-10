@@ -1,0 +1,178 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #0d0d0d;
+    color: #fff;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    padding: 40px 0;
+}
+
+header h1 {
+    font-size: 48px;
+    background: linear-gradient(135deg, #00d4ff, #7b2ffc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+header p {
+    color: #aaa;
+    font-size: 18px;
+    margin-top: 10px;
+}
+
+#catalog {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 30px;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.card {
+    background: #1a1a1a;
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid #2a2a2a;
+}
+
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 40px rgba(0, 212, 255, 0.15);
+    border-color: #00d4ff;
+}
+
+.card img {
+    width: 100%;
+    height: 240px;
+    object-fit: cover;
+    display: block;
+}
+
+.card-info {
+    padding: 20px;
+}
+
+.card-info h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+    color: #fff;
+}
+
+.card-info .price {
+    font-size: 24px;
+    font-weight: bold;
+    color: #00d4ff;
+}
+
+/* Модалка */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    padding: 20px;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: #1a1a1a;
+    border-radius: 20px;
+    max-width: 800px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 30px;
+    position: relative;
+    border: 1px solid #2a2a2a;
+}
+
+.close-btn {
+    position: sticky;
+    top: 0;
+    float: right;
+    font-size: 32px;
+    color: #888;
+    cursor: pointer;
+    transition: color 0.3s;
+    background: #1a1a1a;
+    padding: 0 10px;
+    z-index: 10;
+}
+
+.close-btn:hover {
+    color: #fff;
+}
+
+#modal-body {
+    margin-top: 10px;
+}
+
+#modal-body h2 {
+    font-size: 32px;
+    margin-bottom: 5px;
+}
+
+#modal-body .price {
+    font-size: 28px;
+    color: #00d4ff;
+    margin: 10px 0;
+}
+
+#modal-body .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin: 15px 0;
+}
+
+#modal-body .gallery img {
+    width: 100%;
+    border-radius: 8px;
+    aspect-ratio: 1;
+    object-fit: cover;
+}
+
+#modal-body video {
+    width: 100%;
+    border-radius: 10px;
+    margin: 15px 0;
+}
+
+#modal-body .description {
+    color: #ccc;
+    line-height: 1.8;
+    font-size: 16px;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+::-webkit-scrollbar-thumb {
+    background: #00d4ff;
+    border-radius: 10px;
+}
