@@ -17,19 +17,38 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // === DRAG & DROP ===
-    setupDropZone('photoDrop', 'photo', 'photoPreview', (file) => {
-        filesStore.photo = file;
-        showFilePreview('photoPreview', [file], 'photo');
+    setupDropZone('photoDrop', 'photo', 'photoPreview', (files) => {
+        const file = files[0];
+        if (file) {
+            filesStore.photo = file;
+            showFilePreview('photoPreview', [file], 'photo');
+        }
     });
 
-    setupDropZone('videoDrop', 'video', 'videoPreview', (file) => {
-        filesStore.video = file;
-        showFilePreview('videoPreview', [file], 'video');
+    setupDropZone('videoDrop', 'video', 'videoPreview', (files) => {
+        const file = files[0];
+        if (file) {
+            filesStore.video = file;
+            showFilePreview('videoPreview', [file], 'video');
+        }
     });
 
     setupDropZone('galleryDrop', 'gallery', 'galleryPreview', (files) => {
-        filesStore.gallery = Array.from(files);
-        showFilePreview('galleryPreview', filesStore.gallery, 'gallery');
+        // Очищаем старые файлы из store
+        filesStore.gallery = [];
+        
+        // Добавляем новые файлы (только File объекты)
+        for (let f of files) {
+            if (f instanceof File) {
+                filesStore.gallery.push(f);
+            }
+        }
+        
+        if (filesStore.gallery.length > 0) {
+            showFilePreview('galleryPreview', filesStore.gallery, 'gallery');
+        } else {
+            document.getElementById('galleryPreview').classList.add('hidden');
+        }
     });
 
     // === ФУНКЦИЯ НАСТРОЙКИ DROP ZONE ===
@@ -46,8 +65,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Выбор файлов через input
         input.addEventListener('change', () => {
-            if (input.files.length > 0) {
-                onFiles(input.files);
+            if (input.files && input.files.length > 0) {
+                // Создаем копию FileList в массив
+                const files = Array.from(input.files);
+                onFiles(files);
             }
         });
 
@@ -66,11 +87,16 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             dropZone.classList.remove('drag-over');
             const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                onFiles(files);
+            if (files && files.length > 0) {
+                const fileArray = Array.from(files);
+                onFiles(fileArray);
                 // Синхронизируем input
                 const dt = new DataTransfer();
-                for (let f of files) dt.items.add(f);
+                for (let f of fileArray) {
+                    if (f instanceof File) {
+                        dt.items.add(f);
+                    }
+                }
                 input.files = dt.files;
             }
         });
@@ -82,22 +108,33 @@ document.addEventListener('DOMContentLoaded', () => {
         container.classList.remove('hidden');
         container.innerHTML = '';
 
-        files.forEach((file, index) => {
+        // Фильтруем только File объекты
+        const validFiles = files.filter(f => f instanceof File);
+        
+        if (validFiles.length === 0) {
+            container.classList.add('hidden');
+            return;
+        }
+
+        validFiles.forEach((file, index) => {
             const item = document.createElement('div');
             item.className = 'preview-item';
 
             let icon = '📄';
-            if (file.type.startsWith('image/')) icon = '🖼️';
-            if (file.type.startsWith('video/')) icon = '🎬';
+            if (file.type && file.type.startsWith('image/')) icon = '🖼️';
+            if (file.type && file.type.startsWith('video/')) icon = '🎬';
 
+            const sizeKB = (file.size / 1024).toFixed(1);
+            
             item.innerHTML = `
-                ${icon} ${file.name} (${(file.size / 1024).toFixed(1)} KB)
+                ${icon} ${file.name} (${sizeKB} KB)
                 <span class="remove-file" data-type="${type}" data-index="${index}">✕</span>
             `;
 
             const removeBtn = item.querySelector('.remove-file');
             removeBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
+                
                 if (type === 'photo') {
                     filesStore.photo = null;
                     document.getElementById('photo').value = '';
@@ -107,15 +144,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.getElementById('video').value = '';
                     container.classList.add('hidden');
                 } else if (type === 'gallery') {
-                    filesStore.gallery.splice(index, 1);
+                    // Удаляем конкретный файл из store
+                    if (index < filesStore.gallery.length) {
+                        filesStore.gallery.splice(index, 1);
+                    }
+                    
                     if (filesStore.gallery.length === 0) {
                         container.classList.add('hidden');
+                        document.getElementById('gallery').value = '';
                     } else {
+                        // Перерисовываем превью с обновленным списком
                         showFilePreview(previewId, filesStore.gallery, 'gallery');
                     }
+                    
                     // Синхронизируем input
                     const dt = new DataTransfer();
-                    for (let f of filesStore.gallery) dt.items.add(f);
+                    for (let f of filesStore.gallery) {
+                        if (f instanceof File) {
+                            dt.items.add(f);
+                        }
+                    }
                     document.getElementById('gallery').files = dt.files;
                 }
             });
@@ -148,16 +196,26 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             showStatus('loading', '⏳ Загрузка файлов...');
 
+            // Проверяем что photo — это File
+            if (!(filesStore.photo instanceof File)) {
+                throw new Error('Главное фото не является файлом');
+            }
+            
             const photoData = await fileToBase64(filesStore.photo);
             
             let videoData = '';
             if (filesStore.video) {
+                if (!(filesStore.video instanceof File)) {
+                    throw new Error('Видео не является файлом');
+                }
                 videoData = await fileToBase64(filesStore.video);
             }
 
             const galleryData = [];
             for (let f of filesStore.gallery) {
-                galleryData.push(await fileToBase64(f));
+                if (f instanceof File) {
+                    galleryData.push(await fileToBase64(f));
+                }
             }
 
             const newModel = {
@@ -182,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             showStatus('success', `✅ Модель "${name}" добавлена! Файл models.json скачан.`);
 
+            // Очищаем форму
             form.reset();
             filesStore.photo = null;
             filesStore.video = null;
@@ -190,6 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loadModels();
 
         } catch (error) {
+            console.error('Ошибка:', error);
             showStatus('error', '❌ Ошибка: ' + error.message);
         }
     });
@@ -260,9 +320,18 @@ function showStatus(type, message) {
 
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
+        // Проверяем что file — это File или Blob
+        if (!(file instanceof File) && !(file instanceof Blob)) {
+            reject('Аргумент должен быть File или Blob, получен: ' + typeof file);
+            return;
+        }
+        
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject('Не удалось прочитать файл');
+        reader.onerror = (err) => {
+            console.error('FileReader ошибка:', err);
+            reject('Не удалось прочитать файл: ' + err.message);
+        };
         reader.readAsDataURL(file);
     });
 }
@@ -312,7 +381,7 @@ async function loadModels() {
             return;
         }
 
-        container.innerHTML = models.map((model, index) => `
+        container.innerHTML = models.map((model) => `
             <div class="model-item">
                 <div class="info">
                     <img src="${model.photo || 'https://via.placeholder.com/50/0a1628/0077ff?text=3D'}" 
@@ -352,28 +421,6 @@ async function viewModel(id) {
             return;
         }
 
-        const modalBody = document.getElementById('modal-body');
-        if (!modalBody) {
-            // Если на админке нет модалки — открываем в новой вкладке витрину
-            window.open('index.html', '_blank');
-            return;
-        }
-
-        // Используем ту же модалку что и на витрине
-        let galleryHtml = '';
-        if (model.gallery && model.gallery.length > 0) {
-            galleryHtml = `<div class="gallery">`;
-            model.gallery.forEach(img => {
-                galleryHtml += `<img src="${img}" alt="Фото" loading="lazy" onerror="this.style.display='none'" />`;
-            });
-            galleryHtml += `</div>`;
-        }
-
-        let videoHtml = '';
-        if (model.video) {
-            videoHtml = `<video controls><source src="${model.video}" type="video/mp4" />Ваш браузер не поддерживает видео</video>`;
-        }
-
         // Создаем модалку если её нет
         let modal = document.getElementById('viewModal');
         if (!modal) {
@@ -401,6 +448,21 @@ async function viewModel(id) {
         }
 
         const body = document.getElementById('viewModalBody');
+        
+        let galleryHtml = '';
+        if (model.gallery && model.gallery.length > 0) {
+            galleryHtml = `<div class="gallery">`;
+            model.gallery.forEach(img => {
+                galleryHtml += `<img src="${img}" alt="Фото" loading="lazy" onerror="this.style.display='none'" />`;
+            });
+            galleryHtml += `</div>`;
+        }
+
+        let videoHtml = '';
+        if (model.video) {
+            videoHtml = `<video controls><source src="${model.video}" type="video/mp4" />Ваш браузер не поддерживает видео</video>`;
+        }
+
         body.innerHTML = `
             <h2>${model.name}</h2>
             <div class="price">${model.price}</div>
@@ -433,6 +495,7 @@ async function deleteModel(id) {
         
         showStatus('success', `🗑️ Модель "${deleted ? deleted.name : ''}" удалена! Скачался обновленный models.json.`);
         setTimeout(() => {
+            const status = document.getElementById('status');
             status.style.display = 'none';
         }, 4000);
     } catch (error) {
