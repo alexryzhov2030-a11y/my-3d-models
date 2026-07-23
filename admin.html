@@ -8,18 +8,21 @@
 </head>
 <body>
     <div class="container">
-        <h1>🔧 Моя мастерская</h1>
-        <p>Добавить новую модель</p>
+        <div class="admin-header">
+            <h1>🔧 Моя мастерская</h1>
+            <p>Добавь новую модель — просто перетащи файлы или выбери с компьютера</p>
+        </div>
 
         <form id="uploadForm">
             <div class="form-group">
-                <label>Название модели *</label>
+                <label>Название модели <span>*</span></label>
                 <input type="text" id="name" required placeholder="Например: Дракон" />
             </div>
 
             <div class="form-group">
-                <label>Цена *</label>
-                <input type="text" id="price" required placeholder="2500 ₽" />
+                <label>Цена <span>*</span></label>
+                <input type="text" id="price" required placeholder="2500" />
+                <small>Только цифры, без символов</small>
             </div>
 
             <div class="form-group">
@@ -27,22 +30,44 @@
                 <textarea id="description" rows="4" placeholder="Подробное описание модели..."></textarea>
             </div>
 
+            <!-- Drag & Drop зона -->
             <div class="form-group">
-                <label>Ссылка на главное фото</label>
-                <input type="text" id="photo" placeholder="https://i.imgur.com/ваша_картинка.jpg" />
-                <small style="color: #666;">Загрузи картинку на Imgur.com и вставь ссылку</small>
+                <label>Главное фото <span>*</span></label>
+                <div class="drop-zone" id="photoDrop">
+                    <div class="drop-zone-content">
+                        <span class="drop-icon">📸</span>
+                        <p>Перетащи фото сюда или <span class="click-text">нажми для выбора</span></p>
+                        <small>JPG, PNG, WEBP — до 5 МБ</small>
+                    </div>
+                    <input type="file" id="photo" accept="image/*" required />
+                </div>
+                <div id="photoPreview" class="file-preview hidden"></div>
             </div>
 
             <div class="form-group">
-                <label>Ссылка на видео (опционально)</label>
-                <input type="text" id="video" placeholder="https://i.imgur.com/ваше_видео.mp4" />
-                <small style="color: #666;">Загрузи видео на Imgur.com и вставь ссылку</small>
+                <label>Видео</label>
+                <div class="drop-zone" id="videoDrop">
+                    <div class="drop-zone-content">
+                        <span class="drop-icon">🎬</span>
+                        <p>Перетащи видео сюда или <span class="click-text">нажми для выбора</span></p>
+                        <small>MP4, MOV — до 20 МБ (опционально)</small>
+                    </div>
+                    <input type="file" id="video" accept="video/*" />
+                </div>
+                <div id="videoPreview" class="file-preview hidden"></div>
             </div>
 
             <div class="form-group">
-                <label>Ссылки на дополнительные фото (через запятую)</label>
-                <input type="text" id="gallery" placeholder="https://i.imgur.com/1.jpg, https://i.imgur.com/2.jpg" />
-                <small style="color: #666;">Загрузи фото на Imgur.com и вставь ссылки через запятую</small>
+                <label>Дополнительные фото</label>
+                <div class="drop-zone" id="galleryDrop">
+                    <div class="drop-zone-content">
+                        <span class="drop-icon">🖼️</span>
+                        <p>Перетащи несколько фото сюда или <span class="click-text">нажми для выбора</span></p>
+                        <small>Зажмите Ctrl, чтобы выбрать несколько</small>
+                    </div>
+                    <input type="file" id="gallery" accept="image/*" multiple />
+                </div>
+                <div id="galleryPreview" class="file-preview hidden"></div>
             </div>
 
             <button type="submit">➕ Добавить модель</button>
@@ -52,8 +77,30 @@
 
         <hr />
 
-        <h2>📦 Все модели</h2>
+        <!-- Панель управления -->
+        <div class="admin-actions">
+            <button id="previewBtn" class="preview-btn">👁️ Предпросмотр витрины</button>
+            <button id="refreshBtn" class="refresh-btn">🔄 Обновить список</button>
+        </div>
+
+        <div class="models-header">
+            <h2>📦 Все модели</h2>
+            <span id="modelsCount">0</span>
+        </div>
         <div id="modelsList"></div>
+
+        <div class="admin-footer">
+            <p>⬅️ <a href="index.html" target="_blank">Открыть витрину в новой вкладке</a></p>
+        </div>
+    </div>
+
+    <!-- Модалка предпросмотра -->
+    <div id="previewModal" class="modal hidden">
+        <div class="modal-content preview-modal">
+            <span class="close-btn" id="previewClose">&times;</span>
+            <h2>👁️ Предпросмотр витрины</h2>
+            <div id="previewContainer"></div>
+        </div>
     </div>
 
     <script src="admin.js"></script>

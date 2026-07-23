@@ -3,7 +3,7 @@ const modal = document.getElementById('modal');
 const modalBody = document.getElementById('modal-body');
 const closeBtn = document.querySelector('.close-btn');
 
-// Загружаем модели из JSON
+// Загрузка моделей
 async function loadModels() {
     try {
         const response = await fetch('models.json?t=' + Date.now());
@@ -11,24 +11,35 @@ async function loadModels() {
         renderCards(models);
     } catch (error) {
         console.error('Ошибка загрузки:', error);
-        catalog.innerHTML = '<p style="color: #666; text-align: center;">Нет моделей. Добавь первую через админку.</p>';
+        catalog.innerHTML = `
+            <div style="grid-column:1/-1; text-align:center; padding:60px 20px; color:#6a8aaa;">
+                <h2 style="color:#0a1628;">😕 Нет моделей</h2>
+                <p>Добавь первую модель через <a href="admin.html" style="color:#0077ff;">админку</a></p>
+            </div>
+        `;
     }
 }
 
 function renderCards(models) {
     catalog.innerHTML = '';
     if (!models || models.length === 0) {
-        catalog.innerHTML = '<p style="color: #666; text-align: center;">Моделей пока нет</p>';
+        catalog.innerHTML = `
+            <div style="grid-column:1/-1; text-align:center; padding:60px 20px; color:#6a8aaa;">
+                <h2 style="color:#0a1628;">📦 Моделей пока нет</h2>
+                <p>Добавь первую модель через <a href="admin.html" style="color:#0077ff;">админку</a></p>
+            </div>
+        `;
         return;
     }
+
     models.forEach(model => {
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
-            <img src="${model.photo || 'https://via.placeholder.com/400x240?text=Нет+фото'}" 
+            <img src="${model.photo || 'https://via.placeholder.com/400x240/0a1628/0077ff?text=3D+Model'}" 
                  alt="${model.name}" 
                  loading="lazy" 
-                 onerror="this.src='https://via.placeholder.com/400x240?text=Ошибка+загрузки'" />
+                 onerror="this.src='https://via.placeholder.com/400x240/0a1628/0077ff?text=Ошибка'" />
             <div class="card-info">
                 <h3>${model.name}</h3>
                 <div class="price">${model.price}</div>
