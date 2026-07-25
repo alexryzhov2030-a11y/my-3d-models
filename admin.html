@@ -2,82 +2,103 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Мастерская 3D печати</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>Мастерская — 1 клик</title>
     <link rel="stylesheet" href="admin.css" />
 </head>
 <body>
     <div class="container">
         <div class="admin-header">
-            <h1>🔧 Моя мастерская</h1>
-            <p>Добавь новую модель — просто перетащи файлы или выбери с компьютера</p>
+            <h1>✦ Мастерская</h1>
+            <p>Заполни форму → нажми «Залить» → модель на сайте через 10 секунд</p>
         </div>
 
-        <form id="uploadForm">
-            <div class="form-group">
-                <label>Название модели <span>*</span></label>
-                <input type="text" id="name" required placeholder="Например: Дракон" />
-            </div>
-
-            <div class="form-group">
-                <label>Цена <span>*</span></label>
-                <input type="text" id="price" required placeholder="2500" />
-                <small>Только цифры, без символов</small>
-            </div>
-
-            <div class="form-group">
-                <label>Описание</label>
-                <textarea id="description" rows="4" placeholder="Подробное описание модели..."></textarea>
-            </div>
-
-            <!-- Drag & Drop зона -->
-            <div class="form-group">
-                <label>Главное фото <span>*</span></label>
-                <div class="drop-zone" id="photoDrop">
-                    <div class="drop-zone-content">
-                        <span class="drop-icon">📸</span>
-                        <p>Перетащи фото сюда или <span class="click-text">нажми для выбора</span></p>
-                        <small>JPG, PNG, WEBP — до 5 МБ</small>
+        <div class="admin-grid">
+            <!-- Форма -->
+            <div class="admin-form">
+                <form id="uploadForm">
+                    <div class="form-group">
+                        <label>Название <span>*</span></label>
+                        <input type="text" id="name" placeholder="Дракон" required />
                     </div>
-                    <input type="file" id="photo" accept="image/*" required />
-                </div>
-                <div id="photoPreview" class="file-preview hidden"></div>
-            </div>
 
-            <div class="form-group">
-                <label>Видео</label>
-                <div class="drop-zone" id="videoDrop">
-                    <div class="drop-zone-content">
-                        <span class="drop-icon">🎬</span>
-                        <p>Перетащи видео сюда или <span class="click-text">нажми для выбора</span></p>
-                        <small>MP4, MOV — до 20 МБ (опционально)</small>
+                    <div class="form-group">
+                        <label>Цена <span>*</span></label>
+                        <input type="text" id="price" placeholder="2500" required />
+                        <small>Только цифры</small>
                     </div>
-                    <input type="file" id="video" accept="video/*" />
-                </div>
-                <div id="videoPreview" class="file-preview hidden"></div>
-            </div>
 
-            <div class="form-group">
-                <label>Дополнительные фото</label>
-                <div class="drop-zone" id="galleryDrop">
-                    <div class="drop-zone-content">
-                        <span class="drop-icon">🖼️</span>
-                        <p>Перетащи несколько фото сюда или <span class="click-text">нажми для выбора</span></p>
-                        <small>Зажмите Ctrl, чтобы выбрать несколько</small>
+                    <div class="form-group">
+                        <label>Описание</label>
+                        <textarea id="description" rows="3" placeholder="Детали модели..."></textarea>
                     </div>
-                    <input type="file" id="gallery" accept="image/*" multiple />
+
+                    <div class="form-group">
+                        <label>Главное фото <span>*</span></label>
+                        <div class="drop-zone" id="photoDrop">
+                            <div class="drop-zone-content">
+                                <span class="drop-icon">📸</span>
+                                <p>Перетащи или нажми</p>
+                            </div>
+                            <input type="file" id="photo" accept="image/*" required />
+                        </div>
+                        <div id="photoPreview" class="file-preview hidden"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Видео</label>
+                        <div class="drop-zone" id="videoDrop">
+                            <div class="drop-zone-content">
+                                <span class="drop-icon">🎬</span>
+                                <p>Перетащи или нажми</p>
+                            </div>
+                            <input type="file" id="video" accept="video/*" />
+                        </div>
+                        <div id="videoPreview" class="file-preview hidden"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Доп. фото</label>
+                        <div class="drop-zone" id="galleryDrop">
+                            <div class="drop-zone-content">
+                                <span class="drop-icon">🖼️</span>
+                                <p>Перетащи или нажми (можно несколько)</p>
+                            </div>
+                            <input type="file" id="gallery" accept="image/*" multiple />
+                        </div>
+                        <div id="galleryPreview" class="file-preview hidden"></div>
+                    </div>
+
+                    <!-- GitHub токен (уже вставлен) -->
+                    <input type="hidden" id="githubToken" value="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" />
+
+                    <button type="submit" id="submitBtn">🚀 Залить на сайт</button>
+                </form>
+
+                <div id="status"></div>
+                <div id="progressBar" class="progress-bar hidden">
+                    <div class="progress-fill" id="progressFill"></div>
+                    <span id="progressText">0%</span>
                 </div>
-                <div id="galleryPreview" class="file-preview hidden"></div>
             </div>
 
-            <button type="submit">➕ Добавить модель</button>
-        </form>
-
-        <div id="status"></div>
+            <!-- Предпросмотр -->
+            <div class="admin-preview">
+                <div class="preview-header">
+                    <span>👁️ Превью карточки</span>
+                    <span class="preview-live">LIVE</span>
+                </div>
+                <div id="cardPreview" class="card-preview">
+                    <div class="preview-empty">
+                        <span>◈</span>
+                        <p>Заполни форму<br>чтобы увидеть превью</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <hr />
 
-        <!-- Панель управления -->
         <div class="admin-actions">
             <button id="previewBtn" class="preview-btn">👁️ Предпросмотр витрины</button>
             <button id="refreshBtn" class="refresh-btn">🔄 Обновить список</button>
@@ -90,14 +111,14 @@
         <div id="modelsList"></div>
 
         <div class="admin-footer">
-            <p>⬅️ <a href="index.html" target="_blank">Открыть витрину в новой вкладке</a></p>
+            <a href="index.html" target="_blank">⬅️ Открыть витрину</a>
         </div>
     </div>
 
     <!-- Модалка предпросмотра -->
     <div id="previewModal" class="modal hidden">
         <div class="modal-content preview-modal">
-            <span class="close-btn" id="previewClose">&times;</span>
+            <span class="close-btn" id="previewClose">✕</span>
             <h2>👁️ Предпросмотр витрины</h2>
             <div id="previewContainer"></div>
         </div>
