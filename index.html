@@ -1,29 +1,43 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>3D Модели</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>3D Models</title>
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
+    <!-- Кнопка переключения темы -->
+    <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
+        <span class="theme-icon">🌙</span>
+    </button>
+
     <header>
-        <h1>🖨️ <span>3D</span> Модели</h1>
-        <p>Модели для 3D печати на заказ</p>
+        <div class="header-content">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+                <h1>3D<span>Models</span></h1>
+            </div>
+            <p class="subtitle">⎯⎯⎯  цифровые скульптуры  ⎯⎯⎯</p>
+        </div>
     </header>
 
     <main id="catalog"></main>
 
-    <!-- Модальное окно -->
     <div id="modal" class="modal hidden">
         <div class="modal-content">
-            <span class="close-btn">&times;</span>
+            <button class="close-btn">✕</button>
             <div id="modal-body"></div>
         </div>
     </div>
 
     <footer>
-        <p>© 2026 <span>3D Модели</span>. Все права защищены.</p>
+        <p>© 2026 3D Models</p>
     </footer>
 
     <script src="script.js"></script>
