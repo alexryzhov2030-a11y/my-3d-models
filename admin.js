@@ -1,3 +1,4 @@
+// ===== ТОКЕН БЕРЁМ ИЗ ПОЛЯ ВВОДА =====
 const REPO_OWNER = 'alexryzhov2030-a11y';
 const REPO_NAME = 'my-3d-models';
 const FILE_PATH = 'models.json';
@@ -201,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // === ОТПРАВКА ===
+    // === ОТПРАВКА (ДОБАВЛЯЕТ, А НЕ ЗАМЕНЯЕТ) ===
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -280,17 +281,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 gallery: galleryData
             };
 
+            // ===== ГЛАВНОЕ: ЗАГРУЖАЕМ СТАРЫЕ И ДОБАВЛЯЕМ НОВУЮ =====
             updateProgress(80, 'Загружаем текущие модели...');
             let models = await getModelsFromGitHub(GITHUB_TOKEN);
-            if (!Array.isArray(models)) models = [];
+            
+            // Если models не массив или пустой — создаём новый
+            if (!Array.isArray(models)) {
+                models = [];
+            }
+            
+            // ДОБАВЛЯЕМ новую модель в конец списка (НЕ ЗАМЕНЯЕМ!)
             models.push(newModel);
+            
+            console.log('Всего моделей после добавления:', models.length);
 
             updateProgress(90, 'Заливаем на GitHub...');
             await saveModelsToGitHub(models, GITHUB_TOKEN);
 
             updateProgress(100, '✅ Готово!');
 
-            showStatus('success', `✅ Модель "${name}" залита на сайт! Через 10 секунд она появится на витрине.`);
+            showStatus('success', `✅ Модель "${name}" добавлена к существующим! Всего моделей: ${models.length}`);
 
             form.reset();
             filesStore.photo = null;
@@ -328,12 +338,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             );
 
-            if (response.status === 404) return [];
-            if (!response.ok) throw new Error(`GitHub API ошибка: ${response.status}`);
+            if (response.status === 404) {
+                console.log('Файл models.json не найден, создаём новый');
+                return [];
+            }
+            
+            if (!response.ok) {
+                throw new Error(`GitHub API ошибка: ${response.status}`);
+            }
 
             const data = await response.json();
             const content = atob(data.content);
-            return JSON.parse(content);
+            const parsed = JSON.parse(content);
+            
+            // Убеждаемся что это массив
+            if (!Array.isArray(parsed)) {
+                console.warn('models.json не является массивом, создаём новый');
+                return [];
+            }
+            
+            return parsed;
         } catch (error) {
             console.error('Ошибка загрузки с GitHub:', error);
             return [];
@@ -341,6 +365,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function saveModelsToGitHub(models, token) {
+        // Проверяем что models — это массив
+        if (!Array.isArray(models)) {
+            throw new Error('models должен быть массивом');
+        }
+        
         const content = btoa(unescape(encodeURIComponent(JSON.stringify(models, null, 2))));
         
         let sha = null;
@@ -358,7 +387,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 sha = data.sha;
             }
-        } catch (e) {}
+        } catch (e) {
+            console.log('Файл ещё не существует, создаём новый');
+        }
 
         const payload = {
             message: `Добавлена модель ${new Date().toLocaleString()}`,
