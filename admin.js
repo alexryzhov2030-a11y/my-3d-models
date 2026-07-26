@@ -1,5 +1,5 @@
 // GitHub токен уже вставлен
-const GITHUB_TOKEN = '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';
+const GITHUB_TOKEN = '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';
 const REPO_OWNER = 'alexryzhov2030-a11y';
 const REPO_NAME = 'my-3d-models';
 const FILE_PATH = 'models.json';
