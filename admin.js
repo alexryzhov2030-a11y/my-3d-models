@@ -1,5 +1,3 @@
-// ===== ТОКЕН ИЗ .env (ВСТАВЛЕН!) =====
-const GITHUB_TOKEN = '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';
 const REPO_OWNER = 'alexryzhov2030-a11y';
 const REPO_NAME = 'my-3d-models';
 const FILE_PATH = 'models.json';
@@ -17,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewModal = document.getElementById('previewModal');
     const previewClose = document.getElementById('previewClose');
     const previewContainer = document.getElementById('previewContainer');
+    const tokenInput = document.getElementById('tokenInput');
 
     const filesStore = {
         photo: null,
@@ -215,6 +214,17 @@ document.addEventListener('DOMContentLoaded', () => {
         progressBar.classList.remove('hidden');
         updateProgress(0, 'Начинаем...');
 
+        // Берём токен из поля ввода
+        const GITHUB_TOKEN = tokenInput.value.trim();
+
+        if (!GITHUB_TOKEN) {
+            showStatus('error', '❌ Вставь GitHub токен в поле выше!');
+            submitBtn.disabled = false;
+            submitBtn.textContent = '🚀 Залить на сайт';
+            progressBar.classList.add('hidden');
+            return;
+        }
+
         const name = document.getElementById('name').value.trim();
         const price = document.getElementById('price').value.trim();
         const description = document.getElementById('description').value.trim();
@@ -271,12 +281,12 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             updateProgress(80, 'Загружаем текущие модели...');
-            let models = await getModelsFromGitHub();
+            let models = await getModelsFromGitHub(GITHUB_TOKEN);
             if (!Array.isArray(models)) models = [];
             models.push(newModel);
 
             updateProgress(90, 'Заливаем на GitHub...');
-            await saveModelsToGitHub(models);
+            await saveModelsToGitHub(models, GITHUB_TOKEN);
 
             updateProgress(100, '✅ Готово!');
 
@@ -306,13 +316,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // === GITHUB API ===
-    async function getModelsFromGitHub() {
+    async function getModelsFromGitHub(token) {
         try {
             const response = await fetch(
                 `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`,
                 {
                     headers: {
-                        'Authorization': `token ${GITHUB_TOKEN}`,
+                        'Authorization': `token ${token}`,
                         'Accept': 'application/vnd.github.v3+json'
                     }
                 }
@@ -330,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function saveModelsToGitHub(models) {
+    async function saveModelsToGitHub(models, token) {
         const content = btoa(unescape(encodeURIComponent(JSON.stringify(models, null, 2))));
         
         let sha = null;
@@ -339,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`,
                 {
                     headers: {
-                        'Authorization': `token ${GITHUB_TOKEN}`,
+                        'Authorization': `token ${token}`,
                         'Accept': 'application/vnd.github.v3+json'
                     }
                 }
@@ -361,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
             {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `token ${GITHUB_TOKEN}`,
+                    'Authorization': `token ${token}`,
                     'Content-Type': 'application/json',
                     'Accept': 'application/vnd.github.v3+json'
                 },
@@ -384,8 +394,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // === ПРЕДПРОСМОТР ВИТРИНЫ ===
     previewBtn.addEventListener('click', async () => {
+        const token = tokenInput.value.trim();
+        if (!token) {
+            showStatus('error', '❌ Сначала вставь токен в поле выше!');
+            return;
+        }
         try {
-            const models = await getModelsFromGitHub();
+            const models = await getModelsFromGitHub(token);
             if (!models || models.length === 0) {
                 previewContainer.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:rgba(255,255,255,0.05);"><h3>📭 Нет моделей</h3></div>`;
             } else {
@@ -447,8 +462,16 @@ function fileToBase64(file) {
 }
 
 async function loadModels() {
+    const tokenInput = document.getElementById('tokenInput');
+    const token = tokenInput ? tokenInput.value.trim() : '';
+
+    if (!token) {
+        document.getElementById('modelsList').innerHTML = `<div class="empty-state"><h3>⚠️ Вставь токен в поле выше</h3></div>`;
+        return;
+    }
+
     try {
-        let models = await getModelsFromGitHub();
+        let models = await getModelsFromGitHub(token);
         if (!Array.isArray(models)) models = [];
 
         const container = document.getElementById('modelsList');
@@ -483,8 +506,12 @@ async function loadModels() {
 }
 
 async function viewModel(id) {
+    const tokenInput = document.getElementById('tokenInput');
+    const token = tokenInput ? tokenInput.value.trim() : '';
+    if (!token) { alert('Вставь токен в поле выше'); return; }
+
     try {
-        const models = await getModelsFromGitHub();
+        const models = await getModelsFromGitHub(token);
         const model = models.find(m => m.id === id);
         if (!model) { alert('Модель не найдена'); return; }
 
@@ -542,14 +569,17 @@ async function viewModel(id) {
 }
 
 async function deleteModel(id) {
+    const tokenInput = document.getElementById('tokenInput');
+    const token = tokenInput ? tokenInput.value.trim() : '';
+    if (!token) { alert('Вставь токен в поле выше'); return; }
     if (!confirm('🗑️ Удалить эту модель?')) return;
 
     try {
-        let models = await getModelsFromGitHub();
+        let models = await getModelsFromGitHub(token);
         if (!Array.isArray(models)) models = [];
         const deleted = models.find(m => m.id === id);
         models = models.filter(m => m.id !== id);
-        await saveModelsToGitHub(models);
+        await saveModelsToGitHub(models, token);
         loadModels();
         showStatus('success', `🗑️ Модель "${deleted ? deleted.name : ''}" удалена!`);
         setTimeout(() => { document.getElementById('status').style.display = 'none'; }, 3000);

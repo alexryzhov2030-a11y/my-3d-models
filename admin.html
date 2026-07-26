@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
-    <title>Мастерская</title>
+    <title>Мастерская 3D печати</title>
     <link rel="stylesheet" href="admin.css" />
 </head>
 <body>
     <div class="container">
         <div class="admin-header">
             <h1>✦ Мастерская</h1>
-            <p>Заполни форму → нажми «Залить» → модель на сайте через 10 секунд</p>
+            <p>Заполни форму, вставь токен → нажми «Залить»</p>
         </div>
 
         <div class="admin-grid">
@@ -66,6 +66,13 @@
                             <input type="file" id="gallery" accept="image/*" multiple />
                         </div>
                         <div id="galleryPreview" class="file-preview hidden"></div>
+                    </div>
+
+                    <!-- ПОЛЕ ДЛЯ ТОКЕНА (вводишь вручную) -->
+                    <div class="form-group" style="margin-top: 18px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 18px;">
+                        <label>🔑 GitHub токен <span>*</span></label>
+                        <input type="text" id="tokenInput" placeholder="Вставь свой токен сюда" required />
+                        <small>Получить: <a href="https://github.com/settings/tokens" target="_blank" style="color:#00d4ff;">github.com/settings/tokens</a> (галочка repo)</small>
                     </div>
 
                     <button type="submit" id="submitBtn">🚀 Залить на сайт</button>
