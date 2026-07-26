@@ -17,7 +17,6 @@ body {
     margin: 0 auto;
 }
 
-/* ===== ШАПКА ===== */
 .admin-header {
     background: linear-gradient(135deg, rgba(10, 10, 30, 0.9), rgba(0, 20, 40, 0.9));
     padding: 24px 28px;
@@ -42,7 +41,6 @@ body {
     margin-top: 4px;
 }
 
-/* ===== СЕТКА ===== */
 .admin-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -56,7 +54,6 @@ body {
     }
 }
 
-/* ===== ФОРМА ===== */
 .admin-form {
     background: linear-gradient(145deg, rgba(15, 15, 30, 0.9), rgba(8, 8, 18, 0.95));
     padding: 24px 26px 28px;
@@ -114,7 +111,6 @@ small {
     font-size: 11px;
 }
 
-/* ===== DROP ZONE ===== */
 .drop-zone {
     position: relative;
     border: 1px dashed rgba(0, 212, 255, 0.08);
@@ -194,7 +190,6 @@ small {
     font-weight: 700;
 }
 
-/* ===== КНОПКА ===== */
 button[type="submit"] {
     width: 100%;
     padding: 14px;
@@ -222,7 +217,6 @@ button[type="submit"]:disabled {
     transform: none;
 }
 
-/* ===== ПРЕДПРОСМОТР ===== */
 .admin-preview {
     background: linear-gradient(145deg, rgba(15, 15, 30, 0.9), rgba(8, 8, 18, 0.95));
     border-radius: 20px;
@@ -285,7 +279,6 @@ button[type="submit"]:disabled {
     line-height: 1.5;
 }
 
-/* Карточка в превью */
 .preview-card-mini {
     width: 100%;
     max-width: 280px;
@@ -343,7 +336,6 @@ button[type="submit"]:disabled {
     border-radius: 2px;
 }
 
-/* ===== СТАТУС ===== */
 #status {
     margin-top: 14px;
     padding: 10px 14px;
@@ -374,7 +366,6 @@ button[type="submit"]:disabled {
     color: #00d4ff;
 }
 
-/* ===== ПРОГРЕСС ===== */
 .progress-bar {
     margin-top: 14px;
     background: rgba(255, 255, 255, 0.03);
@@ -408,7 +399,6 @@ button[type="submit"]:disabled {
     letter-spacing: 0.5px;
 }
 
-/* ===== КНОПКИ ДЕЙСТВИЙ ===== */
 .admin-actions {
     display: flex;
     gap: 10px;
@@ -435,7 +425,6 @@ button[type="submit"]:disabled {
     color: rgba(255, 255, 255, 0.6);
 }
 
-/* ===== СПИСОК МОДЕЛЕЙ ===== */
 .models-header {
     display: flex;
     align-items: center;
@@ -544,7 +533,6 @@ button[type="submit"]:disabled {
     background: rgba(255, 51, 102, 0.04);
 }
 
-/* ===== МОДАЛКА ===== */
 .modal {
     position: fixed;
     top: 0;
@@ -642,7 +630,6 @@ button[type="submit"]:disabled {
     transform: rotate(90deg);
 }
 
-/* ===== ФУТЕР ===== */
 .admin-footer {
     margin-top: 24px;
     padding: 16px;
@@ -663,7 +650,6 @@ button[type="submit"]:disabled {
     color: rgba(0, 212, 255, 0.3);
 }
 
-/* ===== СКРОЛЛ ===== */
 ::-webkit-scrollbar {
     width: 4px;
 }
@@ -678,7 +664,6 @@ button[type="submit"]:disabled {
     background: rgba(255, 255, 255, 0.08);
 }
 
-/* ===== ПУСТОЙ СПИСОК ===== */
 .empty-state {
     text-align: center;
     padding: 24px 16px;
@@ -691,7 +676,6 @@ button[type="submit"]:disabled {
     font-weight: 400;
 }
 
-/* ===== АДАПТИВ ===== */
 @media (max-width: 600px) {
     body {
         padding: 12px 10px;

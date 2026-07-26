@@ -1,4 +1,5 @@
-const GITHUB_TOKEN = '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';
+// ===== ТОКЕН ИЗ .env (ВСТАВЛЕН!) =====
+const GITHUB_TOKEN = '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';
 const REPO_OWNER = 'alexryzhov2030-a11y';
 const REPO_NAME = 'my-3d-models';
 const FILE_PATH = 'models.json';
@@ -23,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gallery: []
     };
 
+    // === ЖИВОЕ ПРЕВЬЮ ===
     const nameInput = document.getElementById('name');
     const priceInput = document.getElementById('price');
     const previewContainerEl = document.getElementById('cardPreview');
@@ -66,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     priceInput.addEventListener('input', updateCardPreview);
     updateCardPreview();
 
+    // === DRAG & DROP ===
     setupDropZone('photoDrop', 'photo', 'photoPreview', (files) => {
         const file = files[0];
         if (file && file instanceof File) {
@@ -199,6 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // === ОТПРАВКА ===
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -301,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // === GITHUB API ===
     async function getModelsFromGitHub() {
         try {
             const response = await fetch(
@@ -377,6 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
         progressText.textContent = text + ' (' + percent + '%)';
     }
 
+    // === ПРЕДПРОСМОТР ВИТРИНЫ ===
     previewBtn.addEventListener('click', async () => {
         try {
             const models = await getModelsFromGitHub();
@@ -419,6 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// === ВСПОМОГАТЕЛЬНЫЕ ===
 function showStatus(type, message) {
     const status = document.getElementById('status');
     status.className = type;

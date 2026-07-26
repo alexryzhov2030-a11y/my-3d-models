@@ -4,28 +4,22 @@ const modalBody = document.getElementById('modal-body');
 const closeBtn = document.querySelector('.close-btn');
 const themeToggle = document.getElementById('themeToggle');
 
-// ===== ПЕРЕКЛЮЧЕНИЕ ТЕМЫ =====
 function toggleTheme() {
     const html = document.documentElement;
     const currentTheme = html.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    
     html.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
-    
     const icon = themeToggle.querySelector('.theme-icon');
     icon.textContent = newTheme === 'dark' ? '🌙' : '☀️';
 }
 
-// Загрузка сохранённой темы
 const savedTheme = localStorage.getItem('theme') || 'dark';
 document.documentElement.setAttribute('data-theme', savedTheme);
 const icon = themeToggle.querySelector('.theme-icon');
 icon.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
-
 themeToggle.addEventListener('click', toggleTheme);
 
-// ===== ЗАГРУЗКА МОДЕЛЕЙ =====
 async function loadModels() {
     try {
         const response = await fetch('models.json?t=' + Date.now());
