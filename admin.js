@@ -3,6 +3,9 @@ const REPO_OWNER = 'alexryzhov2030-a11y';
 const REPO_NAME = 'my-3d-models';
 const FILE_PATH = 'models.json';
 
+// Глобальная переменная для токена
+let GITHUB_TOKEN = '';
+
 document.addEventListener('DOMContentLoaded', () => {
     loadModels();
 
@@ -202,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // === ОТПРАВКА (ДОБАВЛЯЕТ, А НЕ ЗАМЕНЯЕТ) ===
+    // === ОТПРАВКА (ПЕРЕПИСАНА С НУЛЯ) ===
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -216,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateProgress(0, 'Начинаем...');
 
         // Берём токен из поля ввода
-        const GITHUB_TOKEN = tokenInput.value.trim();
+        GITHUB_TOKEN = tokenInput.value.trim();
 
         if (!GITHUB_TOKEN) {
             showStatus('error', '❌ Вставь GitHub токен в поле выше!');
@@ -281,34 +284,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 gallery: galleryData
             };
 
-            // ===== ГЛАВНОЕ: ЗАГРУЖАЕМ СТАРЫЕ И ДОБАВЛЯЕМ НОВУЮ =====
-            updateProgress(80, 'Загружаем текущие модели...');
-            let models = await getModelsFromGitHub(GITHUB_TOKEN);
+            // ============================================================
+            // ===== ГЛАВНАЯ ЛОГИКА: ЗАГРУЖАЕМ И ДОБАВЛЯЕМ =====
+            // ============================================================
+            updateProgress(80, 'Загружаем текущие модели с GitHub...');
             
-            // Если models не массив или пустой — создаём новый
-            if (!Array.isArray(models)) {
-                models = [];
-            }
+            // 1. Загружаем текущий файл
+            let existingData = await getModelsFromGitHub(GITHUB_TOKEN);
             
-            // ДОБАВЛЯЕМ новую модель в конец списка (НЕ ЗАМЕНЯЕМ!)
+            // 2. Проверяем, что это массив
+            let models = Array.isArray(existingData) ? existingData : [];
+            
+            // 3. Добавляем новую модель в КОНЕЦ массива
             models.push(newModel);
             
-            console.log('Всего моделей после добавления:', models.length);
-
-            updateProgress(90, 'Заливаем на GitHub...');
+            // 4. Сохраняем обратно на GitHub
+            updateProgress(90, 'Сохраняем на GitHub...');
             await saveModelsToGitHub(models, GITHUB_TOKEN);
 
             updateProgress(100, '✅ Готово!');
 
-            showStatus('success', `✅ Модель "${name}" добавлена к существующим! Всего моделей: ${models.length}`);
+            showStatus('success', `✅ Модель "${name}" добавлена! Всего моделей: ${models.length}`);
 
+            // Очищаем форму
             form.reset();
             filesStore.photo = null;
             filesStore.video = null;
             filesStore.gallery = [];
             document.querySelectorAll('.file-preview').forEach(el => el.classList.add('hidden'));
             updateCardPreview();
-            loadModels();
+            
+            // Обновляем список
+            await loadModels();
 
             setTimeout(() => {
                 progressBar.classList.add('hidden');
@@ -325,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // === GITHUB API ===
+    // === РАБОТА С GITHUB API ===
     async function getModelsFromGitHub(token) {
         try {
             const response = await fetch(
@@ -339,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
             if (response.status === 404) {
-                console.log('Файл models.json не найден, создаём новый');
+                console.log('Файл не найден, создаём новый');
                 return [];
             }
             
@@ -351,13 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const content = atob(data.content);
             const parsed = JSON.parse(content);
             
-            // Убеждаемся что это массив
-            if (!Array.isArray(parsed)) {
-                console.warn('models.json не является массивом, создаём новый');
-                return [];
-            }
-            
-            return parsed;
+            return Array.isArray(parsed) ? parsed : [];
         } catch (error) {
             console.error('Ошибка загрузки с GitHub:', error);
             return [];
@@ -365,13 +366,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function saveModelsToGitHub(models, token) {
-        // Проверяем что models — это массив
         if (!Array.isArray(models)) {
             throw new Error('models должен быть массивом');
         }
         
-        const content = btoa(unescape(encodeURIComponent(JSON.stringify(models, null, 2))));
+        // Проверяем содержимое перед отправкой
+        console.log('Сохраняем модели:', models.length);
         
+        const jsonContent = JSON.stringify(models, null, 2);
+        const content = btoa(unescape(encodeURIComponent(jsonContent)));
+        
+        // Получаем SHA текущего файла (если есть)
         let sha = null;
         try {
             const response = await fetch(
@@ -415,6 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
             throw new Error(`GitHub API ошибка: ${response.status} - ${errorData.message || 'Неизвестная ошибка'}`);
         }
 
+        console.log('✅ Файл успешно сохранён на GitHub');
         return await response.json();
     }
 
@@ -498,6 +504,7 @@ async function loadModels() {
 
     if (!token) {
         document.getElementById('modelsList').innerHTML = `<div class="empty-state"><h3>⚠️ Вставь токен в поле выше</h3></div>`;
+        document.getElementById('modelsCount').textContent = '0';
         return;
     }
 
@@ -611,7 +618,7 @@ async function deleteModel(id) {
         const deleted = models.find(m => m.id === id);
         models = models.filter(m => m.id !== id);
         await saveModelsToGitHub(models, token);
-        loadModels();
+        await loadModels();
         showStatus('success', `🗑️ Модель "${deleted ? deleted.name : ''}" удалена!`);
         setTimeout(() => { document.getElementById('status').style.display = 'none'; }, 3000);
     } catch (error) {
@@ -619,6 +626,7 @@ async function deleteModel(id) {
     }
 }
 
+// Делаем функции глобальными для вызова из HTML
 window.viewModel = viewModel;
 window.deleteModel = deleteModel;
 window.getModelsFromGitHub = getModelsFromGitHub;
