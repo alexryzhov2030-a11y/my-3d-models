@@ -205,10 +205,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // === ОТПРАВКА (ПЕРЕПИСАНА С НУЛЯ) ===
+    // === ОТПРАВКА ===
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const submitBtn = document.getElementById('submitBtn');
         submitBtn.disabled = true;
         submitBtn.textContent = '⏳ Заливка...';
@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!(filesStore.photo instanceof File)) throw new Error('Главное фото не является файлом');
             const photoData = await fileToBase64(filesStore.photo);
-            
+
             updateProgress(30, 'Обрабатываем видео...');
 
             let videoData = '';
@@ -285,22 +285,22 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             // ============================================================
-            // ===== ГЛАВНАЯ ЛОГИКА: ЗАГРУЖАЕМ И ДОБАВЛЯЕМ =====
+            // ГЛАВНАЯ ЛОГИКА: один запрос на чтение (данные + SHA),
+            // затем push новой модели, затем сохранение с ТЕМ ЖЕ SHA.
+            // Это устраняет рассинхронизацию, из-за которой файл
+            // мог перезаписываться "пустым" состоянием.
             // ============================================================
             updateProgress(80, 'Загружаем текущие модели с GitHub...');
-            
-            // 1. Загружаем текущий файл
-            let existingData = await getModelsFromGitHub(GITHUB_TOKEN);
-            
-            // 2. Проверяем, что это массив
-            let models = Array.isArray(existingData) ? existingData : [];
-            
-            // 3. Добавляем новую модель в КОНЕЦ массива
+
+            const { models: existingModels, sha } = await getModelsAndShaFromGitHub(GITHUB_TOKEN);
+
+            let models = Array.isArray(existingModels) ? existingModels : [];
+
+            // Добавляем новую модель в КОНЕЦ массива
             models.push(newModel);
-            
-            // 4. Сохраняем обратно на GitHub
+
             updateProgress(90, 'Сохраняем на GitHub...');
-            await saveModelsToGitHub(models, GITHUB_TOKEN);
+            await saveModelsToGitHub(models, GITHUB_TOKEN, sha);
 
             updateProgress(100, '✅ Готово!');
 
@@ -313,7 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
             filesStore.gallery = [];
             document.querySelectorAll('.file-preview').forEach(el => el.classList.add('hidden'));
             updateCardPreview();
-            
+
             // Обновляем список
             await loadModels();
 
@@ -333,7 +333,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // === РАБОТА С GITHUB API ===
-    async function getModelsFromGitHub(token) {
+
+    // Один запрос: возвращает и массив моделей, и текущий SHA файла.
+    // Это ключевое исправление — раньше SHA брался отдельным запросом,
+    // что могло приводить к рассинхронизации и потере старых моделей.
+    async function getModelsAndShaFromGitHub(token) {
         try {
             const response = await fetch(
                 `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`,
@@ -341,66 +345,68 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: {
                         'Authorization': `token ${token}`,
                         'Accept': 'application/vnd.github.v3+json'
-                    }
+                    },
+                    cache: 'no-store'
                 }
             );
 
             if (response.status === 404) {
-                console.log('Файл не найден, создаём новый');
-                return [];
+                console.log('Файл не найден, будет создан новый');
+                return { models: [], sha: null };
             }
-            
+
             if (!response.ok) {
-                throw new Error(`GitHub API ошибка: ${response.status}`);
+                const errText = await response.text();
+                throw new Error(`GitHub API ошибка при чтении: ${response.status} ${errText}`);
             }
 
             const data = await response.json();
-            const content = atob(data.content);
-            const parsed = JSON.parse(content);
-            
-            return Array.isArray(parsed) ? parsed : [];
+            const content = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+            let parsed = [];
+            try {
+                parsed = JSON.parse(content);
+            } catch (parseErr) {
+                console.error('Не удалось распарсить models.json, содержимое:', content);
+                throw new Error('models.json повреждён или содержит некорректный JSON');
+            }
+
+            return {
+                models: Array.isArray(parsed) ? parsed : [],
+                sha: data.sha
+            };
         } catch (error) {
             console.error('Ошибка загрузки с GitHub:', error);
-            return [];
+            throw error; // пробрасываем — не глотаем ошибку молча,
+                         // иначе можно случайно сохранить пустой массив поверх старых данных
         }
     }
 
-    async function saveModelsToGitHub(models, token) {
+    // Оставлена для совместимости (например, кнопка предпросмотра)
+    async function getModelsFromGitHub(token) {
+        const { models } = await getModelsAndShaFromGitHub(token);
+        return models;
+    }
+
+    async function saveModelsToGitHub(models, token, sha) {
         if (!Array.isArray(models)) {
             throw new Error('models должен быть массивом');
         }
-        
-        // Проверяем содержимое перед отправкой
+
         console.log('Сохраняем модели:', models.length);
-        
+
         const jsonContent = JSON.stringify(models, null, 2);
         const content = btoa(unescape(encodeURIComponent(jsonContent)));
-        
-        // Получаем SHA текущего файла (если есть)
-        let sha = null;
-        try {
-            const response = await fetch(
-                `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`,
-                {
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                }
-            );
-            if (response.ok) {
-                const data = await response.json();
-                sha = data.sha;
-            }
-        } catch (e) {
-            console.log('Файл ещё не существует, создаём новый');
-        }
 
         const payload = {
-            message: `Добавлена модель ${new Date().toLocaleString()}`,
-            content: content,
-            sha: sha
+            message: `Обновление моделей ${new Date().toLocaleString()}`,
+            content: content
         };
+
+        // sha передаём только если файл уже существовал —
+        // иначе GitHub решит, что мы пытаемся перезаписать существующий файл без sha, и вернёт ошибку
+        if (sha) {
+            payload.sha = sha;
+        }
 
         const response = await fetch(
             `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`,
@@ -416,7 +422,12 @@ document.addEventListener('DOMContentLoaded', () => {
         );
 
         if (!response.ok) {
-            const errorData = await response.json();
+            const errorData = await response.json().catch(() => ({}));
+            // 409 обычно означает, что sha устарел (кто-то/что-то изменило файл
+            // между чтением и записью) — явно сообщаем об этом
+            if (response.status === 409) {
+                throw new Error('Конфликт версий файла (sha устарел). Обнови страницу и попробуй снова.');
+            }
             throw new Error(`GitHub API ошибка: ${response.status} - ${errorData.message || 'Неизвестная ошибка'}`);
         }
 
@@ -454,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
             previewModal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         } catch (error) {
-            showStatus('error', '❌ Ошибка загрузки для предпросмотра');
+            showStatus('error', '❌ Ошибка загрузки для предпросмотра: ' + error.message);
         }
     });
 
@@ -475,9 +486,13 @@ document.addEventListener('DOMContentLoaded', () => {
         showStatus('success', '🔄 Список обновлен!');
         setTimeout(() => { status.style.display = 'none'; }, 2000);
     });
+
+    // Делаем доступными для глобальных функций ниже (viewModel/deleteModel)
+    window.__getModelsAndShaFromGitHub = getModelsAndShaFromGitHub;
+    window.__saveModelsToGitHub = saveModelsToGitHub;
 });
 
-// === ВСПОМОГАТЕЛЬНЫЕ ===
+// === ВСПОМОГАТЕЛЬНЫЕ (глобальные) ===
 function showStatus(type, message) {
     const status = document.getElementById('status');
     status.className = type;
@@ -498,6 +513,70 @@ function fileToBase64(file) {
     });
 }
 
+// Глобальная версия чтения моделей с GitHub (используется в loadModels/viewModel/deleteModel)
+async function getModelsFromGitHubGlobal(token) {
+    const response = await fetch(
+        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`,
+        {
+            headers: {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            },
+            cache: 'no-store'
+        }
+    );
+
+    if (response.status === 404) {
+        return { models: [], sha: null };
+    }
+    if (!response.ok) {
+        throw new Error(`GitHub API ошибка: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+    let parsed = [];
+    try {
+        parsed = JSON.parse(content);
+    } catch (e) {
+        throw new Error('models.json повреждён или содержит некорректный JSON');
+    }
+    return { models: Array.isArray(parsed) ? parsed : [], sha: data.sha };
+}
+
+async function saveModelsToGitHubGlobal(models, token, sha) {
+    const jsonContent = JSON.stringify(models, null, 2);
+    const content = btoa(unescape(encodeURIComponent(jsonContent)));
+
+    const payload = {
+        message: `Обновление моделей ${new Date().toLocaleString()}`,
+        content: content
+    };
+    if (sha) payload.sha = sha;
+
+    const response = await fetch(
+        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`,
+        {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify(payload)
+        }
+    );
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 409) {
+            throw new Error('Конфликт версий файла (sha устарел). Обнови страницу и попробуй снова.');
+        }
+        throw new Error(`GitHub API ошибка: ${response.status} - ${errorData.message || 'Неизвестная ошибка'}`);
+    }
+    return await response.json();
+}
+
 async function loadModels() {
     const tokenInput = document.getElementById('tokenInput');
     const token = tokenInput ? tokenInput.value.trim() : '';
@@ -509,8 +588,8 @@ async function loadModels() {
     }
 
     try {
-        let models = await getModelsFromGitHub(token);
-        if (!Array.isArray(models)) models = [];
+        const { models: rawModels } = await getModelsFromGitHubGlobal(token);
+        const models = Array.isArray(rawModels) ? rawModels : [];
 
         const container = document.getElementById('modelsList');
         const count = document.getElementById('modelsCount');
@@ -539,7 +618,7 @@ async function loadModels() {
         `).join('');
     } catch (error) {
         console.error('Ошибка загрузки списка:', error);
-        document.getElementById('modelsList').innerHTML = `<div class="empty-state"><h3>⚠️ Ошибка загрузки</h3></div>`;
+        document.getElementById('modelsList').innerHTML = `<div class="empty-state"><h3>⚠️ Ошибка загрузки: ${error.message}</h3></div>`;
     }
 }
 
@@ -549,7 +628,7 @@ async function viewModel(id) {
     if (!token) { alert('Вставь токен в поле выше'); return; }
 
     try {
-        const models = await getModelsFromGitHub(token);
+        const { models } = await getModelsFromGitHubGlobal(token);
         const model = models.find(m => m.id === id);
         if (!model) { alert('Модель не найдена'); return; }
 
@@ -613,11 +692,11 @@ async function deleteModel(id) {
     if (!confirm('🗑️ Удалить эту модель?')) return;
 
     try {
-        let models = await getModelsFromGitHub(token);
-        if (!Array.isArray(models)) models = [];
+        const { models: rawModels, sha } = await getModelsFromGitHubGlobal(token);
+        let models = Array.isArray(rawModels) ? rawModels : [];
         const deleted = models.find(m => m.id === id);
         models = models.filter(m => m.id !== id);
-        await saveModelsToGitHub(models, token);
+        await saveModelsToGitHubGlobal(models, token, sha);
         await loadModels();
         showStatus('success', `🗑️ Модель "${deleted ? deleted.name : ''}" удалена!`);
         setTimeout(() => { document.getElementById('status').style.display = 'none'; }, 3000);
@@ -629,4 +708,3 @@ async function deleteModel(id) {
 // Делаем функции глобальными для вызова из HTML
 window.viewModel = viewModel;
 window.deleteModel = deleteModel;
-window.getModelsFromGitHub = getModelsFromGitHub;
