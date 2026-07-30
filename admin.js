@@ -1,13 +1,6 @@
 /**
  * admin.js — Админ-панель маркетплейса 3D-моделей
  * Репозиторий: alexryzhov2030-a11y/my-3d-models
- * 
- * Возможности:
- * - Автозагрузка списка моделей при старте / вводе токена
- * - Загрузка файлов (фото, видео, галерея) на GitHub
- * - Добавление модели к существующим (без замены)
- * - Предпросмотр карточки, удаление, просмотр деталей
- * - Обработка ошибок GitHub API (401, 404, 409, 422)
  */
 
 const CONFIG = {
@@ -17,49 +10,44 @@ const CONFIG = {
     assetsPath: 'assets'
 };
 
-/* ---------- DOM-элементы ---------- */
-const tokenInput        = document.getElementById('tokenInput');
-const refreshBtn        = document.getElementById('refreshBtn');
-const modelsContainer   = document.getElementById('modelsList');
-const modelsCount       = document.getElementById('modelsCount');
-const statusEl          = document.getElementById('status');
-const uploadForm        = document.getElementById('uploadForm');
-const submitBtn         = document.getElementById('submitBtn');
-const progressBar       = document.getElementById('progressBar');
-const progressFill      = document.getElementById('progressFill');
-const progressText      = document.getElementById('progressText');
+/* ---------- DOM ---------- */
+const tokenInput     = document.getElementById('tokenInput');
+const refreshBtn     = document.getElementById('refreshBtn');
+const modelsContainer= document.getElementById('modelsList');
+const modelsCount    = document.getElementById('modelsCount');
+const statusEl       = document.getElementById('status');
+const uploadForm     = document.getElementById('uploadForm');
+const submitBtn      = document.getElementById('submitBtn');
+const progressBar    = document.getElementById('progressBar');
+const progressFill   = document.getElementById('progressFill');
+const progressText   = document.getElementById('progressText');
 
-// Поля формы
-const nameInput         = document.getElementById('name');
-const priceInput        = document.getElementById('price');
-const descInput         = document.getElementById('description');
-const photoInput        = document.getElementById('photo');
-const videoInput        = document.getElementById('video');
-const galleryInput      = document.getElementById('gallery');
+const nameInput  = document.getElementById('name');
+const priceInput = document.getElementById('price');
+const descInput  = document.getElementById('description');
+const photoInput = document.getElementById('photo');
+const videoInput = document.getElementById('video');
+const galleryInput=document.getElementById('gallery');
 
-// Drop-зоны
-const photoDrop  = document.getElementById('photoDrop');
-const videoDrop  = document.getElementById('videoDrop');
-const galleryDrop= document.getElementById('galleryDrop');
+const photoDrop   = document.getElementById('photoDrop');
+const videoDrop   = document.getElementById('videoDrop');
+const galleryDrop = document.getElementById('galleryDrop');
 
-// Превью файлов
 const photoPreview  = document.getElementById('photoPreview');
 const videoPreview  = document.getElementById('videoPreview');
 const galleryPreview= document.getElementById('galleryPreview');
 const cardPreview   = document.getElementById('cardPreview');
 
-// Модалка предпросмотра витрины
 const previewBtn      = document.getElementById('previewBtn');
 const previewModal    = document.getElementById('previewModal');
 const previewContainer= document.getElementById('previewContainer');
 const previewClose    = document.getElementById('previewClose');
 
-/* ---------- Состояние ---------- */
+/* ---------- State ---------- */
 let debounceTimer = null;
 let currentFiles  = { photo: null, video: null, gallery: [] };
 
-/* ---------- Утилиты ---------- */
-
+/* ---------- Utils ---------- */
 function escapeHtml(text) {
     if (typeof text !== 'string') return '';
     const div = document.createElement('div');
@@ -67,18 +55,16 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-/** Показывает статусное сообщение под формой */
 function showStatus(type, message) {
     if (!statusEl) return;
     statusEl.className = type;
     statusEl.textContent = message;
     statusEl.style.display = 'block';
     if (type !== 'loading') {
-        setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
+        setTimeout(() => { if(statusEl) statusEl.style.display = 'none'; }, 6000);
     }
 }
 
-/** Показывает сообщение в блоке списка моделей */
 function showMessage(html) {
     if (modelsContainer) {
         modelsContainer.innerHTML = `<div style="text-align:center;padding:40px 20px;color:rgba(255,255,255,0.3);">${html}</div>`;
@@ -86,7 +72,6 @@ function showMessage(html) {
     if (modelsCount) modelsCount.textContent = '0';
 }
 
-/** Обновляет прогресс-бар */
 function setProgress(percent, text) {
     if (!progressBar || !progressFill || !progressText) return;
     progressBar.classList.remove('hidden');
@@ -95,7 +80,6 @@ function setProgress(percent, text) {
     if (percent >= 100) setTimeout(() => progressBar.classList.add('hidden'), 800);
 }
 
-/** Форматирует цену: 2500 → 2 500 ₽ */
 function formatPrice(price) {
     const num = parseInt(String(price).replace(/\D/g, ''), 10);
     if (isNaN(num)) return price;
@@ -104,11 +88,8 @@ function formatPrice(price) {
 
 /* ---------- GitHub API ---------- */
 
-/**
- * Читает models.json и возвращает { models, sha } одним запросом.
- * Обрабатывает 401, 404, битый JSON.
- */
 async function getModelsAndSha(token) {
+    console.log('[GitHub] Чтение models.json...');
     const res = await fetch(
         `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.filePath}`,
         {
@@ -121,51 +102,64 @@ async function getModelsAndSha(token) {
     );
 
     if (res.status === 404) {
-        // Файл ещё не создан — начинаем с пустого массива
+        console.log('[GitHub] models.json не найден — начнём с пустого каталога');
         return { models: [], sha: null };
     }
 
     if (res.status === 401) {
-        throw new Error('401: Неправильный GitHub токен. Проверьте, что токен действителен и имеет доступ к репозиторию.');
+        throw new Error('401: Неправильный GitHub токен. Проверьте, что токен действителен и имеет scope repo.');
     }
 
     if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(`${res.status}: ${err.message || 'Не удалось прочитать models.json'}`);
+        const errText = await res.text().catch(() => '');
+        console.error('[GitHub] Ошибка ответа:', res.status, errText.slice(0, 300));
+        throw new Error(`${res.status}: Не удалось прочитать models.json с GitHub`);
     }
 
     const data = await res.json();
+
+    // Если content отсутствует (файл > 1MB или другая причина)
+    if (!data.content) {
+        console.warn('[GitHub] Поле content отсутствует в ответе');
+        return { models: [], sha: data.sha || null };
+    }
+
     let content;
     try {
         const clean = data.content.replace(/\s/g, '');
-        // Корректное декодирование UTF-8 из base64
+        if (!clean) {
+            console.warn('[GitHub] models.json пустой (base64 пустая)');
+            return { models: [], sha: data.sha };
+        }
         const binary = atob(clean);
         content = decodeURIComponent(escape(binary));
     } catch (e) {
+        console.error('[GitHub] Ошибка декодирования base64:', e);
         throw new Error('Файл models.json повреждён (ошибка декодирования)');
+    }
+
+    if (!content.trim()) {
+        return { models: [], sha: data.sha };
     }
 
     let models;
     try {
         models = JSON.parse(content);
     } catch (e) {
+        console.error('[GitHub] Ошибка JSON.parse. Первые 200 символов:', content.slice(0, 200));
         throw new Error('Файл models.json содержит невалидный JSON');
     }
 
     if (!Array.isArray(models)) {
-        throw new Error('Файл models.json должен содержать массив');
+        throw new Error('Файл models.json должен содержать массив [], а не ' + typeof models);
     }
 
+    console.log('[GitHub] Прочитано моделей:', models.length);
     return { models, sha: data.sha };
 }
 
-/**
- * Сохраняет массив моделей в models.json.
- * Если sha=null — создаёт файл, иначе обновляет.
- */
 async function saveModels(models, token, sha) {
     const json = JSON.stringify(models, null, 2);
-    // UTF-8 → base64 (кросс-браузерный хак)
     const content = btoa(unescape(encodeURIComponent(json)));
 
     const payload = {
@@ -173,6 +167,8 @@ async function saveModels(models, token, sha) {
         content: content
     };
     if (sha) payload.sha = sha;
+
+    console.log('[Save] Сохранение models.json (sha:', sha ? 'есть' : 'новый файл', ')');
 
     const res = await fetch(
         `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.filePath}`,
@@ -187,23 +183,19 @@ async function saveModels(models, token, sha) {
         }
     );
 
-    if (res.status === 401) {
-        throw new Error('401: Неправильный GitHub токен при сохранении');
-    }
-    if (res.status === 409) {
-        throw new Error('409: Конфликт версий. Файл был изменён в другом месте. Обновите страницу и попробуйте снова.');
-    }
+    console.log('[Save] Статус ответа:', res.status);
+
+    if (res.status === 401) throw new Error('401: Неправильный токен при сохранении');
+    if (res.status === 409) throw new Error('409: Конфликт версий. Файл был изменён в другом месте. Обновите страницу и попробуйте снова.');
     if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(`${res.status}: ${err.message || 'Ошибка сохранения на GitHub'}`);
+        const errText = await res.text().catch(() => '');
+        console.error('[Save] Тело ошибки:', errText.slice(0, 300));
+        throw new Error(`${res.status}: Ошибка сохранения на GitHub`);
     }
+
     return await res.json();
 }
 
-/**
- * Загружает бинарный файл в папку assets репозитория.
- * Возвращает raw-URL для использования на сайте.
- */
 async function uploadFile(file, folder, token) {
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const path = `${folder}/${Date.now()}_${safeName}`;
@@ -213,6 +205,7 @@ async function uploadFile(file, folder, token) {
         reader.onload = async (e) => {
             try {
                 const base64 = e.target.result.split(',')[1];
+                console.log('[Upload] Загрузка файла:', file.name, '→', path);
 
                 const res = await fetch(
                     `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${path}`,
@@ -230,13 +223,25 @@ async function uploadFile(file, folder, token) {
                     }
                 );
 
-                if (res.status === 401) throw new Error('401: Неправильный токен при загрузке файла');
-                if (res.status === 422) throw new Error('422: Файл слишком большой или неверный формат');
-                if (!res.ok) throw new Error(`${res.status}: Ошибка загрузки файла ${file.name}`);
+                console.log('[Upload] Статус:', res.status);
 
-                // Raw-URL для прямого доступа через GitHub Pages / raw
-                const rawUrl = `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/main/${path}`;
-                resolve(rawUrl);
+                if (res.status === 401) throw new Error('401: Неправильный токен при загрузке файла');
+                if (res.status === 422) throw new Error('422: Файл слишком большой или неверный формат для GitHub');
+                if (!res.ok) {
+                    const errText = await res.text().catch(() => '');
+                    console.error('[Upload] Тело ошибки:', errText.slice(0, 300));
+                    throw new Error(`${res.status}: Ошибка загрузки файла ${file.name}`);
+                }
+
+                const data = await res.json();
+                const url = data.content?.download_url || data.content?.html_url;
+                if (!url) {
+                    console.warn('[Upload] Не найден URL в ответе, используем raw');
+                    resolve(`https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/main/${path}`);
+                } else {
+                    console.log('[Upload] Успех:', url);
+                    resolve(url);
+                }
             } catch (err) {
                 reject(err);
             }
@@ -246,7 +251,7 @@ async function uploadFile(file, folder, token) {
     });
 }
 
-/* ---------- Загрузка и отрисовка моделей ---------- */
+/* ---------- Models List ---------- */
 
 async function loadModels() {
     const token = tokenInput ? tokenInput.value.trim() : '';
@@ -259,12 +264,10 @@ async function loadModels() {
 
     try {
         const { models } = await getModelsAndSha(token);
-
         if (models.length === 0) {
             showMessage('📭 Пока нет моделей');
             return;
         }
-
         renderModels(models);
     } catch (err) {
         console.error('[Admin] Ошибка загрузки:', err);
@@ -277,7 +280,6 @@ function renderModels(models) {
     if (modelsCount) modelsCount.textContent = models.length;
 
     let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px;">';
-
     models.forEach(model => {
         const photo = model.photo || 'https://via.placeholder.com/400x300/0a0a12/00d4ff?text=3D';
         const name  = model.name  || 'Без названия';
@@ -300,12 +302,11 @@ function renderModels(models) {
             </div>
         `;
     });
-
     html += '</div>';
     modelsContainer.innerHTML = html;
 }
 
-/* ---------- Просмотр / Удаление ---------- */
+/* ---------- View / Delete ---------- */
 
 async function viewModel(id) {
     const token = tokenInput ? tokenInput.value.trim() : '';
@@ -342,12 +343,10 @@ async function viewModel(id) {
 
         const body = document.getElementById('viewModalBody');
         const gallery = model.gallery || [];
-
         let html = `
             <h2 style="font-size:26px;font-weight:800;color:#fff;margin:0 0 2px;">${escapeHtml(model.name)}</h2>
             <div style="font-size:28px;font-weight:800;background:linear-gradient(135deg,#00d4ff,#7b2ffc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:4px 0 16px;">${escapeHtml(model.price)}</div>
         `;
-
         if (model.photo) {
             html += `<img src="${model.photo}" style="width:100%;max-height:400px;object-fit:cover;border-radius:12px;margin-bottom:12px;background:#0a0a12;" onerror="this.style.display='none'" />`;
         }
@@ -361,9 +360,7 @@ async function viewModel(id) {
             });
             html += `</div>`;
         }
-
         html += `<div style="color:#aaa;line-height:1.8;background:rgba(255,255,255,0.02);padding:16px 20px;border-radius:12px;border-left:3px solid #00d4ff;">${escapeHtml(model.description || 'Описание отсутствует')}</div>`;
-
         body.innerHTML = html;
         modal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
@@ -381,7 +378,6 @@ async function deleteModel(id) {
         const { models, sha } = await getModelsAndSha(token);
         const deleted = models.find(m => m.id === id);
         const updated = models.filter(m => m.id !== id);
-
         await saveModels(updated, token, sha);
         await loadModels();
         showStatus('success', `🗑️ Модель «${deleted ? deleted.name : ''}» удалена`);
@@ -409,11 +405,16 @@ function setupDropZone(zone, input, type) {
     zone.addEventListener('drop', (e) => {
         const files = e.dataTransfer.files;
         if (!files.length) return;
+
+        // input.files — read-only, используем DataTransfer
+        const dt = new DataTransfer();
         if (type === 'gallery') {
-            input.files = files;
+            for (let i = 0; i < files.length; i++) dt.items.add(files[i]);
+            input.files = dt.files;
             handleGallerySelect(files);
         } else {
-            input.files = files;
+            dt.items.add(files[0]);
+            input.files = dt.files;
             handleFileSelect(type, files[0]);
         }
         updateCardPreview();
@@ -470,15 +471,18 @@ function removeFile(type) {
 function removeGalleryFile(index) {
     currentFiles.gallery.splice(index, 1);
     if (galleryInput) galleryInput.value = '';
+    // Пересобираем DataTransfer для input
+    const dt = new DataTransfer();
+    currentFiles.gallery.forEach(f => dt.items.add(f));
+    galleryInput.files = dt.files;
     handleGallerySelect(currentFiles.gallery);
     updateCardPreview();
 }
 
-/* ---------- Превью карточки (Live) ---------- */
+/* ---------- Live Preview ---------- */
 
 function updateCardPreview() {
     if (!cardPreview) return;
-
     const name  = nameInput  ? nameInput.value.trim()  : '';
     const price = priceInput ? priceInput.value.trim() : '';
     const photo = currentFiles.photo;
@@ -494,7 +498,6 @@ function updateCardPreview() {
     }
 
     const photoUrl = photo ? URL.createObjectURL(photo) : 'https://via.placeholder.com/400x300/0a0a12/00d4ff?text=3D';
-
     cardPreview.innerHTML = `
         <div class="preview-card-mini">
             <div class="card-image">
@@ -510,7 +513,7 @@ function updateCardPreview() {
     `;
 }
 
-/* ---------- Отправка формы (ДОБАВЛЕНИЕ модели) ---------- */
+/* ---------- Form Submit ---------- */
 
 uploadForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -530,18 +533,15 @@ uploadForm.addEventListener('submit', async (e) => {
     setProgress(5, 'Начинаем...');
 
     try {
-        // 1. Загружаем фото
         setProgress(15, 'Загрузка фото...');
         const photoUrl = await uploadFile(currentFiles.photo, CONFIG.assetsPath, token);
 
-        // 2. Загружаем видео (если есть)
         let videoUrl = '';
         if (currentFiles.video) {
             setProgress(35, 'Загрузка видео...');
             videoUrl = await uploadFile(currentFiles.video, CONFIG.assetsPath, token);
         }
 
-        // 3. Загружаем галерею (если есть)
         let galleryUrls = [];
         if (currentFiles.gallery.length) {
             for (let i = 0; i < currentFiles.gallery.length; i++) {
@@ -551,11 +551,9 @@ uploadForm.addEventListener('submit', async (e) => {
             }
         }
 
-        // 4. Читаем текущий каталог (один запрос = данные + SHA)
         setProgress(85, 'Чтение каталога...');
         const { models, sha } = await getModelsAndSha(token);
 
-        // 5. Формируем новую модель
         const newModel = {
             id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
             name,
@@ -567,10 +565,8 @@ uploadForm.addEventListener('submit', async (e) => {
             createdAt: new Date().toISOString()
         };
 
-        // 6. ДОБАВЛЯЕМ к существующим (не заменяем!)
         models.unshift(newModel);
 
-        // 7. Сохраняем
         setProgress(95, 'Сохранение каталога...');
         await saveModels(models, token, sha);
         setProgress(100, 'Готово!');
@@ -587,7 +583,7 @@ uploadForm.addEventListener('submit', async (e) => {
         await loadModels();
 
     } catch (err) {
-        console.error('[Upload]', err);
+        console.error('[Upload] Ошибка:', err);
         showStatus('error', err.message);
         setProgress(0, 'Ошибка');
     } finally {
@@ -595,7 +591,7 @@ uploadForm.addEventListener('submit', async (e) => {
     }
 });
 
-/* ---------- Предпросмотр витрины ---------- */
+/* ---------- Preview Modal ---------- */
 
 if (previewBtn) {
     previewBtn.addEventListener('click', async () => {
@@ -637,27 +633,23 @@ if (previewClose && previewModal) {
     });
 }
 
-/* ---------- Инициализация ---------- */
+/* ---------- Init ---------- */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Drag & Drop
     setupDropZone(photoDrop,  photoInput,  'photo');
     setupDropZone(videoDrop,  videoInput,  'video');
     setupDropZone(galleryDrop, galleryInput, 'gallery');
 
-    // Live-обновление превью карточки
     [nameInput, priceInput, descInput].forEach(el => {
         if (el) el.addEventListener('input', updateCardPreview);
     });
 
-    // 1. Автозагрузка при старте, если токен уже вставлен
     if (tokenInput && tokenInput.value.trim()) {
         loadModels();
     } else {
         showMessage('⚠️ Вставь токен в поле выше');
     }
 
-    // 2. Автообновление при вводе / вставке токена (debounce 500 мс)
     if (tokenInput) {
         tokenInput.addEventListener('input', () => {
             clearTimeout(debounceTimer);
@@ -665,13 +657,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 3. Кнопка «Обновить список»
     if (refreshBtn) {
         refreshBtn.addEventListener('click', loadModels);
     }
 });
 
-/* Глобальные ссылки для inline-обработчиков */
 window.viewModel = viewModel;
 window.deleteModel = deleteModel;
 window.removeFile = removeFile;
