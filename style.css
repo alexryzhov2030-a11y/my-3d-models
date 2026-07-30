@@ -235,6 +235,71 @@ header h1 span {
     font-size: 0.7em;
 }
 
+/* --- Кнопки в карточке --- */
+.card-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+}
+
+.card-actions button {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+    min-width: 100px;
+}
+
+.btn-order {
+    background: linear-gradient(135deg, #00d4ff, #0077ff);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2);
+}
+
+.btn-order:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(0, 212, 255, 0.4);
+}
+
+.btn-details {
+    background: rgba(255, 255, 255, 0.05);
+    color: #ccc;
+    border: 1px solid #333;
+}
+
+.btn-details:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* --- Кнопка "Заказать" внутри модалки --- */
+.btn-order-in-modal {
+    width: 100%;
+    padding: 14px;
+    margin-top: 20px;
+    background: linear-gradient(135deg, #00d4ff, #0077ff);
+    border: none;
+    border-radius: 30px;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+}
+
+.btn-order-in-modal:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 40px rgba(0, 212, 255, 0.5);
+}
+
+/* --- Модалка --- */
 .modal {
     position: fixed;
     top: 0;
@@ -265,6 +330,19 @@ header h1 span {
     box-shadow: var(--shadow-hover);
 }
 
+/* --- Модалка заказа --- */
+#orderModal .modal-content {
+    max-width: 600px;
+}
+
+#orderModal .modal-content h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 20px;
+}
+
+/* --- Общие стили для кнопок закрытия --- */
 .close-btn {
     position: sticky;
     top: 0;
@@ -375,15 +453,7 @@ footer {
 ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(0, 212, 255, 0.2); }
 
-@media (min-width: 601px) and (max-width: 1024px) {
-    #catalog { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; padding: 0 20px; }
-}
-
-@media (min-width: 1025px) {
-    #catalog { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 28px; padding: 0 32px; }
-    .card-image { aspect-ratio: 4 / 3; }
-}
-
+/* --- Адаптив --- */
 @media (max-width: 600px) {
     .theme-toggle { top: 14px; right: 14px; width: 40px; height: 40px; font-size: 18px; }
     header { padding: 32px 16px 24px; }
@@ -396,6 +466,10 @@ footer {
     .card-image .badge { top: 10px; right: 10px; padding: 3px 10px; font-size: 8px; }
     .modal-content { padding: 20px 18px 24px; border-radius: 18px; }
     #modal-body .gallery { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; }
+    .card-actions { flex-direction: column; }
+    .card-actions button { width: 100%; }
+    #orderModal .modal-content { padding: 20px; }
+    #orderModal .modal-content h2 { font-size: 22px; }
 }
 
 @media (max-width: 380px) {
@@ -403,6 +477,15 @@ footer {
     .card-info { padding: 10px 12px 14px; }
     .card-info h3 { font-size: 13px; }
     .card-info .price { font-size: 16px; }
+}
+
+@media (min-width: 601px) and (max-width: 1024px) {
+    #catalog { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; padding: 0 20px; }
+}
+
+@media (min-width: 1025px) {
+    #catalog { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 28px; padding: 0 32px; }
+    .card-image { aspect-ratio: 4 / 3; }
 }
 
 @media (max-height: 500px) and (orientation: landscape) {

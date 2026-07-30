@@ -28,10 +28,20 @@
 
     <main id="catalog"></main>
 
+    <!-- Модалка с деталями модели -->
     <div id="modal" class="modal hidden">
         <div class="modal-content">
             <button class="close-btn">✕</button>
             <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Модалка для заказа -->
+    <div id="orderModal" class="modal hidden">
+        <div class="modal-content">
+            <button class="close-btn" id="orderCloseBtn">✕</button>
+            <h2 style="margin-bottom: 8px; color: #fff;">📦 Оформление заказа</h2>
+            <div id="orderModalBody"></div>
         </div>
     </div>
 
